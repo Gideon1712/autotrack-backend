@@ -68,10 +68,6 @@ def delete_application(id):
     db.session.commit()
     return jsonify({'message': 'Deleted'}), 200
 
-@main.route('/', methods=['GET'])
-def home():
-    return jsonify({"message": "Welcome to AutoTrack: Smart Job Application Tracker API!"})
-
 @main.route('/upload_resume', methods=['POST'])
 def upload_resume():
     # Validate file
