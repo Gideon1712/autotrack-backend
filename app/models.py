@@ -15,4 +15,3 @@ class Application(db.Model):
     notes = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date_applied = db.Column(db.DateTime, default=datetime.utcnow)
-
