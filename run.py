@@ -11,5 +11,5 @@ def serve_frontend():
 def serve_static_file(path):
     return send_from_directory('frontend', path)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run()
