@@ -1,8 +1,7 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
 {% block content %}
-<h1>Welcome to AutoTrack</h1>
-<p>This platform helps you track job applications and upload resumes.</p>
-<a href="{{ url_for('main.signup_form') }}">Sign Up</a> or
-<a href="{{ url_for('main.login_form') }}">Log In</a>
+  <h2>Welcome to AutoTrack</h2>
+  <p>Track your job applications and upload resumes with ease.</p>
+  <a href="{{ url_for('signup_page') }}">Get Started</a>
 {% endblock %}
