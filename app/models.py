@@ -13,5 +13,6 @@ class Application(db.Model):
     position = db.Column(db.String(120), nullable=False)
     status = db.Column(db.String(50), default="Applied")
     notes = db.Column(db.Text, nullable=True)
+    resume_url = db.Column(db.String(255))  # 🔥 Add this line
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date_applied = db.Column(db.DateTime, default=datetime.utcnow)

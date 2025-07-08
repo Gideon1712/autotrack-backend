@@ -2,6 +2,9 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User, Application
+import boto3
+import os
+from werkzeug.utils import secure_filename
 
 main = Blueprint('main', __name__)
 
