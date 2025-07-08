@@ -1,5 +1,4 @@
-# app/routes.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User, Application
 import boto3
@@ -7,26 +6,49 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 
-
 main = Blueprint('main', __name__)
 
+# ----------------- HTML VIEWS -----------------
+@main.route('/')
+def index():
+    return render_template('index.html')
+
+@main.route('/signup', methods=['GET'])
+def signup_form():
+    return render_template('signup.html')
+
+@main.route('/login', methods=['GET'])
+def login_form():
+    return render_template('login.html')
+
+@main.route('/dashboard/<int:user_id>', methods=['GET'])
+def dashboard(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return "User not found", 404
+    return render_template('dashboard.html', user_id=user_id)
+
+# ----------------- SIGNUP & LOGIN -----------------
 @main.route('/signup', methods=['POST'])
 def signup():
-    data = request.json
-    hashed_pw = generate_password_hash(data['password'], method='sha256')
-    user = User(email=data['email'], password=hashed_pw)
+    email = request.form['email']
+    password = request.form['password']
+    hashed_pw = generate_password_hash(password, method='sha256')
+    user = User(email=email, password=hashed_pw)
     db.session.add(user)
     db.session.commit()
-    return jsonify({'message': 'User created successfully'}), 201
+    return redirect(url_for('main.login_form'))
 
 @main.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    user = User.query.filter_by(email=data['email']).first()
-    if user and check_password_hash(user.password, data['password']):
-        return jsonify({'message': 'Login successful'}), 200
-    return jsonify({'message': 'Invalid credentials'}), 401
+    email = request.form['email']
+    password = request.form['password']
+    user = User.query.filter_by(email=email).first()
+    if user and check_password_hash(user.password, password):
+        return redirect(url_for('main.dashboard', user_id=user.id))
+    return render_template('login.html', error="Invalid credentials")
 
+# ----------------- APPLICATION ROUTES (JSON API) -----------------
 @main.route('/applications', methods=['POST'])
 def create_application():
     data = request.json
@@ -68,17 +90,16 @@ def delete_application(id):
     db.session.commit()
     return jsonify({'message': 'Deleted'}), 200
 
+# ----------------- RESUME UPLOAD FORM + LOGIC -----------------
 @main.route('/upload_resume', methods=['POST'])
 def upload_resume():
-    # Validate file
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
+        return "No file uploaded", 400
+
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+        return "Empty filename", 400
 
-    # Validate form data
     user_id = request.form.get('user_id')
     company = request.form.get('company')
     position = request.form.get('position')
@@ -86,12 +107,11 @@ def upload_resume():
     notes = request.form.get('notes', '')
 
     if not all([user_id, company, position]):
-        return jsonify({'error': 'Missing required fields'}), 400
+        return "Missing fields", 400
 
-    # Upload to S3
     filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[-1]
-    unique_filename = f"{uuid.uuid4().hex}.{extension}"
+    ext = filename.rsplit('.', 1)[-1]
+    unique_filename = f"{uuid.uuid4().hex}.{ext}"
     bucket_name = os.getenv('S3_BUCKET')
     region = os.getenv('S3_REGION')
 
@@ -100,7 +120,6 @@ def upload_resume():
         s3.upload_fileobj(file, bucket_name, unique_filename)
         file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{unique_filename}"
 
-        # Save to database
         application = Application(
             company=company,
             position=position,
@@ -112,7 +131,8 @@ def upload_resume():
         db.session.add(application)
         db.session.commit()
 
-        return jsonify({'message': 'Upload successful', 'resume_url': file_url}), 201
+        return redirect(url_for('main.dashboard', user_id=user_id))
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return f"Upload failed: {e}", 500
+
