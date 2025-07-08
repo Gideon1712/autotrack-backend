@@ -66,3 +66,24 @@ def delete_application(id):
 @main.route('/', methods=['GET'])
 def home():
     return jsonify({"message": "Welcome to AutoTrack: Smart Job Application Tracker API!"})
+
+@main.route('/upload_resume', methods=['POST'])
+def upload_resume():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    filename = secure_filename(file.filename)
+    bucket_name = os.getenv('S3_BUCKET')
+    region = os.getenv('S3_REGION')
+
+    try:
+        s3 = boto3.client('s3', region_name=region)
+        s3.upload_fileobj(file, bucket_name, filename)
+        file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{filename}"
+        return jsonify({'message': 'Upload successful', 'url': file_url}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
