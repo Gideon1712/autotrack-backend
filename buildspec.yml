@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo Installing dependencies...
+      - pip install -r requirements.txt
+
+  build:
+    commands:
+      - echo Build stage complete
+
+  post_build:
+    commands:
+      - echo Copying files to EC2...
+      - aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --comment "Deploy AutoTrack App" \
+          --targets '[{"Key":"InstanceIds","Values":["i-077d4e507af853de9"]}]' \
+          --parameters '{"commands":["cd /home/ec2-user/autotrack-backend", "git pull", "sudo systemctl restart autotrack.service"]}' \
+          --region eu-north-1
+artifacts:
+  files:
+    - '**/*'
