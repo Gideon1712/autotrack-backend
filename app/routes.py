@@ -27,7 +27,7 @@ def dashboard(user_id):
     if not user:
         return "User not found", 404
 
-    applications = Application.query.filter_by(user_id=user_id).all()
+    applications = Application.query.filter_by(user_id=user_id).order_by(Application.date_applied.desc()).all()
     return render_template('dashboard.html', user_id=user_id, applications=applications)
 
 
@@ -51,6 +51,7 @@ def login():
         return redirect(url_for('main.dashboard', user_id=user.id))
     return render_template('login.html', error="Invalid credentials")
 
+
 # ----------------- APPLICATION ROUTES (JSON API) -----------------
 @main.route('/applications', methods=['POST'])
 def create_application():
@@ -69,6 +70,7 @@ def list_applications():
         'position': app.position,
         'status': app.status,
         'notes': app.notes,
+        'resume_url': app.resume_url,
         'date_applied': app.date_applied
     } for app in applications]
     return jsonify(result), 200
@@ -93,6 +95,7 @@ def delete_application(id):
     db.session.commit()
     return jsonify({'message': 'Deleted'}), 200
 
+
 # ----------------- RESUME UPLOAD FORM + LOGIC -----------------
 @main.route('/upload_resume', methods=['POST'])
 def upload_resume():
@@ -106,7 +109,7 @@ def upload_resume():
 
         filename = secure_filename(file.filename)
         if '.' not in filename or not filename.lower().endswith('.pdf'):
-            return "Only PDF files are allowed", 400  # ✅ restrict to PDFs
+            return "Only PDF files are allowed", 400
 
         user_id = request.form.get('user_id')
         company = request.form.get('company')
@@ -117,24 +120,20 @@ def upload_resume():
         if not all([user_id, company, position]):
             return "Missing required fields", 400
 
-        # Generate unique filename
         ext = filename.rsplit('.', 1)[-1]
         unique_filename = f"{uuid.uuid4().hex}.{ext}"
 
-        # Get S3 details
         bucket_name = os.getenv('S3_BUCKET')
         region = os.getenv('S3_REGION')
 
         if not bucket_name or not region:
             return "S3 configuration missing", 500
 
-        # Upload to S3
         s3 = boto3.client('s3', region_name=region)
         s3.upload_fileobj(file, bucket_name, unique_filename)
 
         file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{unique_filename}"
 
-        # Save application in DB
         application = Application(
             company=company,
             position=position,
