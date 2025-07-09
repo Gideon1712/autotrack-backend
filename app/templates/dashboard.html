@@ -3,69 +3,123 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-  <h2>Dashboard (User ID: {{ user_id }})</h2>
+<h2>Dashboard (User ID: {{ user_id }})</h2>
 
-  <form method="POST" action="{{ url_for('main.upload_resume') }}" enctype="multipart/form-data">
-      <input type="hidden" name="user_id" value="{{ user_id }}">
+<!-- Upload Form -->
+<form method="POST" action="{{ url_for('main.upload_resume') }}" enctype="multipart/form-data">
+  <input type="hidden" name="user_id" value="{{ user_id }}">
 
-      <label for="company">Company:</label><br>
-      <input type="text" id="company" name="company" required><br><br>
+  <label for="company">Company:</label><br>
+  <input type="text" id="company" name="company" required><br><br>
 
-      <label for="position">Position:</label><br>
-      <input type="text" id="position" name="position" required><br><br>
+  <label for="position">Position:</label><br>
+  <input type="text" id="position" name="position" required><br><br>
 
-      <label for="status">Status:</label><br>
-      <select id="status" name="status">
-          <option value="Applied" selected>Applied</option>
-          <option value="Interviewing">Interviewing</option>
-          <option value="Offered">Offered</option>
-          <option value="Rejected">Rejected</option>
-      </select><br><br>
+  <label for="status">Status:</label><br>
+  <select id="status" name="status">
+    <option value="Applied" selected>Applied</option>
+    <option value="Interview">Interview</option>
+    <option value="Offer">Offer</option>
+    <option value="Rejected">Rejected</option>
+  </select><br><br>
 
-      <label for="notes">Notes:</label><br>
-      <textarea id="notes" name="notes" rows="4" cols="50"></textarea><br><br>
+  <label for="notes">Notes:</label><br>
+  <textarea id="notes" name="notes" rows="4" cols="50"></textarea><br><br>
 
-      <label for="file">Resume (.pdf only):</label><br>
-      <input type="file" id="file" name="file" accept=".pdf" required><br><br>
+  <label for="file">Resume (.pdf only):</label><br>
+  <input type="file" id="file" name="file" accept=".pdf" required><br><br>
 
-      <button type="submit">Upload Resume</button>
-  </form>
+  <button type="submit">Upload Resume</button>
+</form>
 
-  <hr>
+<hr>
 
-  <h3>Uploaded Applications</h3>
-  {% if applications %}
-    <table border="1" cellpadding="8" cellspacing="0">
-      <tr>
-        <th>Company</th>
-        <th>Position</th>
-        <th>Status</th>
-        <th>Date Applied</th>
-        <th>Resume</th>
-      </tr>
-      {% for app in applications %}
-        <tr>
-          <td>{{ app.company }}</td>
-          <td>{{ app.position }}</td>
-          <td>
-            {% if app.status == 'Applied' %}
-              <span style="background-color: #d9edf7; color: #31708f; padding: 4px 8px; border-radius: 5px;">Applied</span>
-            {% elif app.status == 'Interviewing' %}
-              <span style="background-color: #fcf8e3; color: #8a6d3b; padding: 4px 8px; border-radius: 5px;">Interviewing</span>
-            {% elif app.status == 'Offered' %}
-              <span style="background-color: #dff0d8; color: #3c763d; padding: 4px 8px; border-radius: 5px;">Offered</span>
-            {% elif app.status == 'Rejected' %}
-              <span style="background-color: #f2dede; color: #a94442; padding: 4px 8px; border-radius: 5px;">Rejected</span>
-            {% else %}
-              {{ app.status }}
-            {% endif %}
-          </td>
-          <td>{{ app.date_applied.strftime('%Y-%m-%d') }}</td>
-          <td><a href="{{ app.resume_url }}" target="_blank">View Resume</a></td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% else %}
-    <p>No applications uploaded yet.</p>
-  {% endif %}
+<h3>Uploaded Applications</h3>
+
+<!-- Status Filter -->
+<label for="statusFilter">Filter by Status:</label>
+<select id="statusFilter" onchange="filterTable()">
+  <option value="All">All</option>
+  <option value="Applied">Applied</option>
+  <option value="Interview">Interview</option>
+  <option value="Offer">Offer</option>
+  <option value="Rejected">Rejected</option>
+</select>
+
+{% if applications %}
+<table id="applicationsTable" border="1" cellpadding="8" cellspacing="0">
+  <tr>
+    <th>Company</th>
+    <th>Position</th>
+    <th>Status</th>
+    <th>Date Applied</th>
+    <th>Resume</th>
+  </tr>
+  {% for app in applications %}
+  <tr data-status="{{ app.status }}">
+    <td>{{ app.company }}</td>
+    <td>{{ app.position }}</td>
+    <td>
+      <select onchange="updateStatus({{ app.id }}, this.value)" class="status-dropdown {{ app.status|lower }}">
+        <option value="Applied" {% if app.status == 'Applied' %}selected{% endif %}>Applied</option>
+        <option value="Interview" {% if app.status == 'Interview' %}selected{% endif %}>Interview</option>
+        <option value="Offer" {% if app.status == 'Offer' %}selected{% endif %}>Offer</option>
+        <option value="Rejected" {% if app.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </td>
+    <td>{{ app.date_applied.strftime('%Y-%m-%d') }}</td>
+    <td><a href="{{ app.resume_url }}" target="_blank">View Resume</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>No applications uploaded yet.</p>
+{% endif %}
+
+<!-- Styling for badges and dropdown colors -->
+<style>
+  select.status-dropdown {
+    font-weight: bold;
+    padding: 4px;
+    border-radius: 5px;
+    color: white;
+    border: none;
+  }
+  .applied { background-color: #007bff; }
+  .interview { background-color: #ffc107; color: black; }
+  .offer { background-color: #28a745; }
+  .rejected { background-color: #dc3545; }
+
+  #statusFilter {
+    margin: 10px 0;
+  }
+</style>
+
+<!-- Scripts -->
+<script>
+  function filterTable() {
+    const filter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#applicationsTable tr[data-status]');
+    rows.forEach(row => {
+      const status = row.getAttribute('data-status');
+      row.style.display = (filter === "All" || filter === status) ? "" : "none";
+    });
+  }
+
+  function updateStatus(appId, newStatus) {
+    fetch(`/applications/${appId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to update");
+      document.querySelector(`tr[data-status][data-id="${appId}"]`).setAttribute("data-status", newStatus);
+    })
+    .catch(err => {
+      alert("Status update failed");
+      console.error(err);
+    });
+  }
+</script>
 {% endblock %}
