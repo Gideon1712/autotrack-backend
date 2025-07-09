@@ -15,7 +15,12 @@
       <input type="text" id="position" name="position" required><br><br>
 
       <label for="status">Status:</label><br>
-      <input type="text" id="status" name="status" value="Applied"><br><br>
+      <select id="status" name="status">
+          <option value="Applied" selected>Applied</option>
+          <option value="Interviewing">Interviewing</option>
+          <option value="Offered">Offered</option>
+          <option value="Rejected">Rejected</option>
+      </select><br><br>
 
       <label for="notes">Notes:</label><br>
       <textarea id="notes" name="notes" rows="4" cols="50"></textarea><br><br>
@@ -42,7 +47,19 @@
         <tr>
           <td>{{ app.company }}</td>
           <td>{{ app.position }}</td>
-          <td>{{ app.status }}</td>
+          <td>
+            {% if app.status == 'Applied' %}
+              <span style="background-color: #d9edf7; color: #31708f; padding: 4px 8px; border-radius: 5px;">Applied</span>
+            {% elif app.status == 'Interviewing' %}
+              <span style="background-color: #fcf8e3; color: #8a6d3b; padding: 4px 8px; border-radius: 5px;">Interviewing</span>
+            {% elif app.status == 'Offered' %}
+              <span style="background-color: #dff0d8; color: #3c763d; padding: 4px 8px; border-radius: 5px;">Offered</span>
+            {% elif app.status == 'Rejected' %}
+              <span style="background-color: #f2dede; color: #a94442; padding: 4px 8px; border-radius: 5px;">Rejected</span>
+            {% else %}
+              {{ app.status }}
+            {% endif %}
+          </td>
           <td>{{ app.date_applied.strftime('%Y-%m-%d') }}</td>
           <td><a href="{{ app.resume_url }}" target="_blank">View Resume</a></td>
         </tr>
