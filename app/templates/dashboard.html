@@ -56,11 +56,11 @@
     <th>Resume</th>
   </tr>
   {% for app in applications %}
-  <tr data-status="{{ app.status }}">
+  <tr data-status="{{ app.status }}" data-id="{{ app.id }}">
     <td>{{ app.company }}</td>
     <td>{{ app.position }}</td>
     <td>
-      <select onchange="updateStatus({{ app.id }}, this.value)" class="status-dropdown {{ app.status|lower }}">
+      <select class="status-dropdown {{ app.status|lower }}" data-app-id="{{ app.id }}" onchange="updateStatus(this)">
         <option value="Applied" {% if app.status == 'Applied' %}selected{% endif %}>Applied</option>
         <option value="Interview" {% if app.status == 'Interview' %}selected{% endif %}>Interview</option>
         <option value="Offer" {% if app.status == 'Offer' %}selected{% endif %}>Offer</option>
@@ -76,7 +76,7 @@
 <p>No applications uploaded yet.</p>
 {% endif %}
 
-<!-- Styling for badges and dropdown colors -->
+<!-- Styling -->
 <style>
   select.status-dropdown {
     font-weight: bold;
@@ -85,6 +85,7 @@
     color: white;
     border: none;
   }
+
   .applied { background-color: #007bff; }
   .interview { background-color: #ffc107; color: black; }
   .offer { background-color: #28a745; }
@@ -95,30 +96,38 @@
   }
 </style>
 
-<!-- Scripts -->
+<!-- JavaScript -->
 <script>
   function filterTable() {
     const filter = document.getElementById('statusFilter').value;
     const rows = document.querySelectorAll('#applicationsTable tr[data-status]');
     rows.forEach(row => {
       const status = row.getAttribute('data-status');
-      row.style.display = (filter === "All" || filter === status) ? "" : "none";
+      row.style.display = (filter === "All" || status === filter) ? "" : "none";
     });
   }
 
-  function updateStatus(appId, newStatus) {
+  function updateStatus(selectEl) {
+    const appId = selectEl.dataset.appId;
+    const newStatus = selectEl.value;
+
     fetch(`/applications/${appId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to update");
-      document.querySelector(`tr[data-status][data-id="${appId}"]`).setAttribute("data-status", newStatus);
+    .then(response => {
+      if (!response.ok) throw new Error("Failed to update");
+
+      const row = selectEl.closest('tr');
+      row.setAttribute('data-status', newStatus);
+
+      selectEl.classList.remove('applied', 'interview', 'offer', 'rejected');
+      selectEl.classList.add(newStatus.toLowerCase());
     })
-    .catch(err => {
+    .catch(error => {
       alert("Status update failed");
-      console.error(err);
+      console.error(error);
     });
   }
 </script>
