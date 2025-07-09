@@ -131,8 +131,9 @@ def upload_resume():
 
         s3 = boto3.client('s3', region_name=region)
         s3.upload_fileobj(file, bucket_name, unique_filename)
-
+        s3.put_object_acl(ACL='public-read', Bucket=bucket_name, Key=unique_filename)
         file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{unique_filename}"
+
 
         application = Application(
             company=company,
