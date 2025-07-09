@@ -5,7 +5,6 @@
 {% block content %}
   <h2>Dashboard (User ID: {{ user_id }})</h2>
 
-  <!-- Resume Upload Form -->
   <form method="POST" action="{{ url_for('main.upload_resume') }}" enctype="multipart/form-data">
       <input type="hidden" name="user_id" value="{{ user_id }}">
 
@@ -29,32 +28,25 @@
 
   <hr>
 
-  <!-- Application Table -->
   <h3>Uploaded Applications</h3>
   {% if applications %}
-    <table border="1" cellpadding="8">
-      <thead>
-        <tr>
-          <th>Company</th>
-          <th>Position</th>
-          <th>Status</th>
-          <th>Notes</th>
-          <th>Date Applied</th>
-          <th>Resume</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for app in applications %}
+    <table border="1" cellpadding="8" cellspacing="0">
+      <tr>
+        <th>Company</th>
+        <th>Position</th>
+        <th>Status</th>
+        <th>Date Applied</th>
+        <th>Resume</th>
+      </tr>
+      {% for app in applications %}
         <tr>
           <td>{{ app.company }}</td>
           <td>{{ app.position }}</td>
           <td>{{ app.status }}</td>
-          <td>{{ app.notes }}</td>
-          <td>{{ app.date_applied.strftime('%Y-%m-%d') if app.date_applied else '—' }}</td>
+          <td>{{ app.date_applied.strftime('%Y-%m-%d') }}</td>
           <td><a href="{{ app.resume_url }}" target="_blank">View Resume</a></td>
         </tr>
-        {% endfor %}
-      </tbody>
+      {% endfor %}
     </table>
   {% else %}
     <p>No applications uploaded yet.</p>
