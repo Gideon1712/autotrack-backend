@@ -26,7 +26,10 @@ def dashboard(user_id):
     user = User.query.get(user_id)
     if not user:
         return "User not found", 404
-    return render_template('dashboard.html', user_id=user_id)
+
+    applications = Application.query.filter_by(user_id=user_id).all()
+    return render_template('dashboard.html', user_id=user_id, applications=applications)
+
 
 # ----------------- SIGNUP & LOGIN -----------------
 @main.route('/signup', methods=['POST'])
@@ -101,6 +104,10 @@ def upload_resume():
         if not file or file.filename.strip() == '':
             return "Empty or invalid file", 400
 
+        filename = secure_filename(file.filename)
+        if '.' not in filename or not filename.lower().endswith('.pdf'):
+            return "Only PDF files are allowed", 400  # ✅ restrict to PDFs
+
         user_id = request.form.get('user_id')
         company = request.form.get('company')
         position = request.form.get('position')
@@ -110,15 +117,11 @@ def upload_resume():
         if not all([user_id, company, position]):
             return "Missing required fields", 400
 
-        # Check and secure filename
-        filename = secure_filename(file.filename)
-        if '.' not in filename:
-            return "Invalid file type", 400
-
+        # Generate unique filename
         ext = filename.rsplit('.', 1)[-1]
         unique_filename = f"{uuid.uuid4().hex}.{ext}"
 
-        # Environment variables
+        # Get S3 details
         bucket_name = os.getenv('S3_BUCKET')
         region = os.getenv('S3_REGION')
 
@@ -131,7 +134,7 @@ def upload_resume():
 
         file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{unique_filename}"
 
-        # Save to DB
+        # Save application in DB
         application = Application(
             company=company,
             position=position,
@@ -144,7 +147,7 @@ def upload_resume():
         db.session.commit()
 
         return redirect(url_for('main.dashboard', user_id=user_id))
-    
+
     except Exception as e:
         db.session.rollback()
         return f"Upload failed: {str(e)}", 500
