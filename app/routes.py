@@ -93,33 +93,45 @@ def delete_application(id):
 # ----------------- RESUME UPLOAD FORM + LOGIC -----------------
 @main.route('/upload_resume', methods=['POST'])
 def upload_resume():
-    if 'file' not in request.files:
-        return "No file uploaded", 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return "Empty filename", 400
-
-    user_id = request.form.get('user_id')
-    company = request.form.get('company')
-    position = request.form.get('position')
-    status = request.form.get('status', 'Applied')
-    notes = request.form.get('notes', '')
-
-    if not all([user_id, company, position]):
-        return "Missing fields", 400
-
-    filename = secure_filename(file.filename)
-    ext = filename.rsplit('.', 1)[-1]
-    unique_filename = f"{uuid.uuid4().hex}.{ext}"
-    bucket_name = os.getenv('S3_BUCKET')
-    region = os.getenv('S3_REGION')
-
     try:
+        if 'file' not in request.files:
+            return "No file uploaded", 400
+
+        file = request.files['file']
+        if not file or file.filename.strip() == '':
+            return "Empty or invalid file", 400
+
+        user_id = request.form.get('user_id')
+        company = request.form.get('company')
+        position = request.form.get('position')
+        status = request.form.get('status', 'Applied')
+        notes = request.form.get('notes', '')
+
+        if not all([user_id, company, position]):
+            return "Missing required fields", 400
+
+        # Check and secure filename
+        filename = secure_filename(file.filename)
+        if '.' not in filename:
+            return "Invalid file type", 400
+
+        ext = filename.rsplit('.', 1)[-1]
+        unique_filename = f"{uuid.uuid4().hex}.{ext}"
+
+        # Environment variables
+        bucket_name = os.getenv('S3_BUCKET')
+        region = os.getenv('S3_REGION')
+
+        if not bucket_name or not region:
+            return "S3 configuration missing", 500
+
+        # Upload to S3
         s3 = boto3.client('s3', region_name=region)
         s3.upload_fileobj(file, bucket_name, unique_filename)
+
         file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{unique_filename}"
 
+        # Save to DB
         application = Application(
             company=company,
             position=position,
@@ -132,7 +144,7 @@ def upload_resume():
         db.session.commit()
 
         return redirect(url_for('main.dashboard', user_id=user_id))
+    
     except Exception as e:
         db.session.rollback()
-        return f"Upload failed: {e}", 500
-
+        return f"Upload failed: {str(e)}", 500
