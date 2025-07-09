@@ -77,14 +77,28 @@ def list_applications():
 
 @main.route('/applications/<int:id>', methods=['PUT'])
 def update_application(id):
-    data = request.json
     app = Application.query.get(id)
     if not app:
-        return jsonify({'message': 'Not found'}), 404
-    for key, value in data.items():
-        setattr(app, key, value)
-    db.session.commit()
-    return jsonify({'message': 'Updated'}), 200
+        return jsonify({'message': 'Application not found'}), 404
+
+    data = request.get_json()
+
+    # Only allow known fields to be updated
+    allowed_fields = ['status', 'notes', 'company', 'position']
+    for key in allowed_fields:
+        if key in data:
+            setattr(app, key, data[key])
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Application updated successfully',
+            'updated': {key: getattr(app, key) for key in allowed_fields if key in data}
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Update failed: {str(e)}'}), 500
+
 
 @main.route('/applications/<int:id>', methods=['DELETE'])
 def delete_application(id):
