@@ -16,14 +16,6 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
-@main.route('/signup', methods=['GET'])
-def signup_form():
-    return render_template('signup.html')
-
-@main.route('/login', methods=['GET'])
-def login_form():
-    return render_template('login.html')
-
 @main.route('/dashboard/<int:user_id>', methods=['GET'])
 def dashboard(user_id):
     user = User.query.get(user_id)
