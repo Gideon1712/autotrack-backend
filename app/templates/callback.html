@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Callback</title>
+  <script>
+    window.onload = function () {
+      const hash = window.location.hash.substr(1);
+      const params = new URLSearchParams(hash);
+
+      const idToken = params.get("id_token");
+      const accessToken = params.get("access_token");
+
+      if (idToken && accessToken) {
+        // Store in localStorage
+        localStorage.setItem("idToken", idToken);
+        localStorage.setItem("accessToken", accessToken);
+        window.location.href = "/dashboard.html";
+      } else {
+        document.body.innerHTML = "<h3>Login failed. No token received.</h3>";
+      }
+    };
+  </script>
+</head>
+<body>
+  <h3>Processing authentication...</h3>
+</body>
+</html>
