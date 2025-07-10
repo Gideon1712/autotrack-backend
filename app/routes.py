@@ -1,9 +1,12 @@
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User, Application
 import boto3
 import os
 import uuid
+import requests
+import base64
+import jwt
 from werkzeug.utils import secure_filename
 
 main = Blueprint('main', __name__)
@@ -165,3 +168,59 @@ def upload_resume():
     except Exception as e:
         db.session.rollback()
         return f"Upload failed: {str(e)}", 500
+
+# Cognito config
+COGNITO_DOMAIN = "https://eu-north-18cfqqehkz.auth.eu-north-1.amazoncognito.com"
+CLIENT_ID = "3rjl3gh2urarm3hqrlfi9vthmq"
+CLIENT_SECRET = "o4p2ptn5m1inr7223g4iah8h44our75aiflcg26fkn5d5pvljt1"
+REDIRECT_URI = "https://staging.d37tilv61lh248.amplifyapp.com/callback.html"
+
+@main.route('/callback.html')
+def oauth_callback():
+    code = request.args.get('code')
+    if not code:
+        return "Missing code in callback", 400
+
+    # Exchange code for tokens
+    token_url = f"{COGNITO_DOMAIN}/oauth2/token"
+    auth_str = f"{CLIENT_ID}:{CLIENT_SECRET}"
+    b64_auth = base64.b64encode(auth_str.encode()).decode()
+
+    headers = {
+        "Authorization": f"Basic {b64_auth}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    data = {
+        "grant_type": "authorization_code",
+        "client_id": CLIENT_ID,
+        "code": code,
+        "redirect_uri": REDIRECT_URI
+    }
+
+    token_response = requests.post(token_url, headers=headers, data=data)
+    if token_response.status_code != 200:
+        return f"Failed to get tokens: {token_response.text}", 400
+
+    tokens = token_response.json()
+    id_token = tokens.get("id_token")
+    if not id_token:
+        return "No ID token found", 400
+
+    # Decode ID token
+    decoded = jwt.decode(id_token, options={"verify_signature": False})
+    user_sub = decoded.get("sub")
+
+    if not user_sub:
+        return "No user ID (sub) in token", 400
+
+    # OPTIONAL: Map Cognito user to your DB user (if needed)
+    user = User.query.filter_by(cognito_sub=user_sub).first()
+    if not user:
+        # If user doesn't exist, create one (you can also use email if present)
+        user = User(cognito_sub=user_sub, email=decoded.get("email", "no-email@unknown.com"))
+        db.session.add(user)
+        db.session.commit()
+
+    session["user_id"] = user.id
+    return redirect(url_for('main.dashboard', user_id=user.id))
