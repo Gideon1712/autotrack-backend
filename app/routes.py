@@ -16,6 +16,14 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
+@main.route('/signup')
+def login_signup():
+    return redirect("https://eu-north-18cfqqehkz.auth.eu-north-1.amazoncognito.com/login?client_id=3rjl3gh2urarm3hqrlfi9vthmq&response_type=code&scope=email+openid+phone&redirect_uri=https://staging.d37tilv61lh248.amplifyapp.com/callback.html")
+
+@main.route('/login')
+def login_redirect():
+    return redirect("https://eu-north-18cfqqehkz.auth.eu-north-1.amazoncognito.com/login?client_id=3rjl3gh2urarm3hqrlfi9vthmq&response_type=code&scope=email+openid+phone&redirect_uri=https://staging.d37tilv61lh248.amplifyapp.com/callback.html")
+
 @main.route('/dashboard/<int:user_id>', methods=['GET'])
 def dashboard(user_id):
     user = User.query.get(user_id)
