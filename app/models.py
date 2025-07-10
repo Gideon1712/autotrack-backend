@@ -16,3 +16,4 @@ class Application(db.Model):
     resume_url = db.Column(db.String(255))  # 🔥 Add this line
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date_applied = db.Column(db.DateTime, default=datetime.utcnow)
+    cognito_sub = db.Column(db.String(255), unique=True)
