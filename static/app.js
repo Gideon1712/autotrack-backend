@@ -1,4 +1,4 @@
-const apiBaseUrl = "https://<your-api-id>.execute-api.eu-north-1.amazonaws.com/prod";
+const apiBaseUrl = "https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod";
 const userId = localStorage.getItem("user_id") || "test_user"; // Replace with real auth later
 
 document.addEventListener("DOMContentLoaded", () => {
