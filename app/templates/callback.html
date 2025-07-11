@@ -3,25 +3,39 @@
 <head>
   <title>Callback</title>
   <script>
-    window.onload = function () {
-      const hash = window.location.hash.substr(1);
-      const params = new URLSearchParams(hash);
+    window.onload = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
 
-      const idToken = params.get("id_token");
-      const accessToken = params.get("access_token");
+      if (!code) {
+        document.body.innerText = "Missing authorization code in URL.";
+        return;
+      }
 
-      if (idToken && accessToken) {
-        // Store in localStorage
-        localStorage.setItem("idToken", idToken);
-        localStorage.setItem("accessToken", accessToken);
-        window.location.href = "https://staging.d37tilv61lh248.amplifyapp.com/dashboard.html";
-      } else {
-        document.body.innerHTML = "<h3>Login failed. No token received.</h3>";
+      try {
+        const response = await fetch(`https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod/auth/callback?code=${code}`);
+        
+        if (!response.ok) {
+          throw new Error("Token exchange failed");
+        }
+
+        const data = await response.json();
+
+        if (!data.user_id) {
+          throw new Error("User ID not returned");
+        }
+
+        localStorage.setItem("user_id", data.user_id);
+        window.location.href = "/dashboard.html";
+      } catch (err) {
+        document.body.innerText = "Authentication failed. Please contact support.";
+        console.error(err);
       }
     };
   </script>
 </head>
 <body>
-  <h3>Processing authentication...</h3>
+  <h3>Processing login... Please wait.</h3>
 </body>
 </html>
+
