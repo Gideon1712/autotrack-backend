@@ -16,7 +16,7 @@ def lambda_handler(event, context):
     client_id = "3rjl3gh2urarm3hqrlfi9vthmq"
     client_secret = "o4p2ptn5m1inr7223g4iah8h44our75aiflcg26fkn5d5pvljt1"
     redirect_uri = "https://staging.d37tilv61lh248.amplifyapp.com/callback.html"
-    token_url = "https://eu-north-1.amazoncognito.com/oauth2/token"
+    token_url = "https://autotrack-auth-001.auth.eu-north-1.amazoncognito.com/oauth2/token"
 
     basic_auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
 
