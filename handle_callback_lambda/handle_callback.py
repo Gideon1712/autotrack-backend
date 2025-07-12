@@ -1,4 +1,3 @@
-
 import json
 import base64
 import requests
@@ -13,16 +12,17 @@ def lambda_handler(event, context):
         return {"statusCode": 400, "body": "Missing code"}
 
     # 2. Prepare token request
-    client_id = "68v9giap1qm6995m6amuel3j0j"  # your SPA app client
-    client_secret = ""  # leave empty if no client secret
+    client_id = "68v9giap1qm6995m6amuel3j0j"  # SPA client
+    client_secret = ""  # No client secret
     redirect_uri = "https://staging.d37tilv61lh248.amplifyapp.com/callback.html"
     token_url = "https://autotrack-auth-001.auth.eu-north-1.amazoncognito.com/oauth2/token"
 
+    # Even with no secret, Cognito expects this header
     basic_auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
 
     headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-        
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {basic_auth}"
     }
 
     data = {
@@ -32,21 +32,24 @@ def lambda_handler(event, context):
         "redirect_uri": redirect_uri
     }
 
-    # 3. Send POST request to get tokens
+    # 3. Send POST request
     response = requests.post(token_url, headers=headers, data=data)
 
     if response.status_code != 200:
-        return {"statusCode": 500, "body": f"Failed to fetch tokens: {response.text}"}
+        return {
+            "statusCode": 500,
+            "body": f"Failed to fetch tokens: {response.text}"
+        }
 
     tokens = response.json()
     id_token = tokens.get("id_token")
 
-    # 4. Decode the ID token to extract user ID
+    # 4. Decode ID token
     decoded = jwt.decode(id_token, options={"verify_signature": False})
     user_id = decoded.get("sub")
     email = decoded.get("email")
 
-    # 5. Return user_id as JSON
+    # 5. Return success
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
