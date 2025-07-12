@@ -13,16 +13,16 @@ def lambda_handler(event, context):
         return {"statusCode": 400, "body": "Missing code"}
 
     # 2. Prepare token request
-    client_id = "3rjl3gh2urarm3hqrlfi9vthmq"
-    client_secret = "o4p2ptn5m1inr7223g4iah8h44our75aiflcg26fkn5d5pvljt1"
+    client_id = "68v9giap1qm6995m6amuel3j0j"  # your SPA app client
+    client_secret = ""  # leave empty if no client secret
     redirect_uri = "https://staging.d37tilv61lh248.amplifyapp.com/callback.html"
     token_url = "https://autotrack-auth-001.auth.eu-north-1.amazoncognito.com/oauth2/token"
 
     basic_auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
 
     headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": f"Basic {basic_auth}"
+        "Content-Type": "application/x-www-form-urlencoded"
+        
     }
 
     data = {
