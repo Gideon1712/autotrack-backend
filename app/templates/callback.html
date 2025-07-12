@@ -13,7 +13,7 @@
       }
 
       try {
-        const response = await fetch(`https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod/auth/callback?code=${encodeURIComponent(code)}`);
+        const response = await fetch(`https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod/auth/callback?code=${code}`);
         
         if (!response.ok) {
           throw new Error("Token exchange failed");

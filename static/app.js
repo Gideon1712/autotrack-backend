@@ -86,7 +86,7 @@ async function updateStatus(selectEl) {
   await fetch(`${apiBaseUrl}/update`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ app_id: appId, new_status: newStatus })
+    body: JSON.stringify({ application_id: appId, status: newStatus }) // ✅ Fixed
   });
 
   // UI update
