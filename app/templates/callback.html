@@ -13,29 +13,27 @@
       }
 
       try {
-        const response = await fetch(`https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod/auth/callback?code=${code}`);
+        const response = await fetch(`https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod/auth/callback?code=${encodeURIComponent(code)}`);
         
         if (!response.ok) {
           throw new Error("Token exchange failed");
         }
 
         const data = await response.json();
-
-        if (!data.user_id) {
-          throw new Error("User ID not returned");
+        if (data.user_id) {
+          localStorage.setItem("user_id", data.user_id);
+          window.location.href = "/dashboard.html";
+        } else {
+          document.body.innerText = "Authentication failed. Please contact support.";
         }
-
-        localStorage.setItem("user_id", data.user_id);
-        window.location.href = "/dashboard.html";
       } catch (err) {
-        document.body.innerText = "Authentication failed. Please contact support.";
         console.error(err);
+        document.body.innerText = "Authentication failed. Please contact support.";
       }
     };
   </script>
 </head>
 <body>
-  <h3>Processing login... Please wait.</h3>
+  <h3>Processing authentication...</h3>
 </body>
 </html>
-
