@@ -19,8 +19,14 @@ async function submitApplication() {
   const file = document.getElementById("file").files[0];
 
   // 1. Request a pre-signed S3 upload URL
-  const uploadRes = await fetch(`${apiBaseUrl}/upload-resume-url?filename=${file.name}`);
-  const { upload_url, file_url } = await uploadRes.json();
+  const uploadRes = await fetch(`${apiBaseUrl}/upload-resume-url?filename=${file.name}`, {
+    headers: {
+      'Authorization': localStorage.getItem("id_token")
+    }
+  });
+
+  const { upload_url, key } = await uploadRes.json();
+  const file_url = `https://autotrack-resumes-bucket.s3.eu-north-1.amazonaws.com/${key}`;
 
   // 2. Upload to S3 directly
   await fetch(upload_url, {
@@ -42,7 +48,10 @@ async function submitApplication() {
 
   await fetch(`${apiBaseUrl}/create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": localStorage.getItem("id_token")
+    },
     body: JSON.stringify(payload)
   });
 
@@ -50,6 +59,7 @@ async function submitApplication() {
   document.getElementById("application-form").reset();
   fetchApplications();
 }
+
 
 async function fetchApplications() {
   const res = await fetch(`${apiBaseUrl}/get?user_id=${userId}`);
