@@ -1,5 +1,4 @@
 const apiBaseUrl = "https://mwzib4q2ri.execute-api.eu-north-1.amazonaws.com/prod";
-const userId = localStorage.getItem("user_id") || "test_user"; // Replace with real auth later
 
 document.addEventListener("DOMContentLoaded", () => {
   fetchApplications();
@@ -17,90 +16,133 @@ async function submitApplication() {
   const status = document.getElementById("status").value;
   const notes = document.getElementById("notes").value;
   const file = document.getElementById("file").files[0];
+  const idToken = localStorage.getItem("id_token");
 
-  // 1. Request a pre-signed S3 upload URL
-  const uploadRes = await fetch(`${apiBaseUrl}/upload-resume-url?filename=${file.name}`, {
-    headers: {
-      'Authorization': localStorage.getItem("id_token")
-    }
-  });
+  if (!idToken) {
+    alert("You are not logged in. Please log in again.");
+    return;
+  }
 
-  const { upload_url, key } = await uploadRes.json();
-  const file_url = `https://autotrack-resumes-bucket.s3.eu-north-1.amazonaws.com/${key}`;
+  try {
+    // 1. Get pre-signed URL from Lambda
+    const uploadRes = await fetch(`${apiBaseUrl}/upload-resume-url?filename=${file.name}`, {
+      method: "POST",
+      headers: {
+        "Authorization": idToken,
+        "Content-Type": "application/json"
+      }
+    });
 
-  // 2. Upload to S3 directly
-  await fetch(upload_url, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file
-  });
+    if (!uploadRes.ok) throw new Error("Failed to get upload URL");
+    const { upload_url, key, file_url } = await uploadRes.json();
 
-  // 3. Send application data to backend
-  const payload = {
-    user_id: userId,
-    company,
-    position,
-    status,
-    notes,
-    resume_url: file_url,
-    date_applied: new Date().toISOString()
-  };
+    // 2. Upload resume file directly to S3
+    await fetch(upload_url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file
+    });
 
-  await fetch(`${apiBaseUrl}/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": localStorage.getItem("id_token")
-    },
-    body: JSON.stringify(payload)
-  });
+    // 3. Submit application metadata to /create
+    const payload = {
+      company,
+      position,
+      status,
+      notes,
+      resume_url: file_url,
+      date_applied: new Date().toISOString()
+    };
 
-  alert("Application submitted!");
-  document.getElementById("application-form").reset();
-  fetchApplications();
+    const createRes = await fetch(`${apiBaseUrl}/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": idToken
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!createRes.ok) throw new Error("Failed to save application metadata");
+
+    alert("Application submitted!");
+    document.getElementById("application-form").reset();
+    fetchApplications();
+  } catch (err) {
+    console.error("Error submitting application:", err);
+    alert("There was an error submitting the application. Check the console for details.");
+  }
 }
 
-
 async function fetchApplications() {
-  const res = await fetch(`${apiBaseUrl}/get?user_id=${userId}`);
-  const apps = await res.json();
-  const table = document.getElementById("table-body");
-  table.innerHTML = "";
+  const idToken = localStorage.getItem("id_token");
 
-  apps.forEach(app => {
-    const row = document.createElement("tr");
-    row.setAttribute("data-status", app.status);
+  if (!idToken) {
+    console.error("Missing ID token. Cannot fetch applications.");
+    return;
+  }
 
-    row.innerHTML = `
-      <td>${app.company}</td>
-      <td>${app.position}</td>
-      <td>
-        <select class="status-dropdown ${app.status.toLowerCase()}" data-app-id="${app.id}" onchange="updateStatus(this)">
-          ${["Applied", "Interview", "Offer", "Rejected"].map(status =>
-            `<option value="${status}" ${status === app.status ? "selected" : ""}>${status}</option>`
-          ).join("")}
-        </select>
-      </td>
-      <td>${new Date(app.date_applied).toLocaleDateString()}</td>
-      <td><a href="${app.resume_url}" target="_blank">View Resume</a></td>
-    `;
+  try {
+    const res = await fetch(`${apiBaseUrl}/get`, {
+      method: "GET",
+      headers: {
+        "Authorization": idToken
+      }
+    });
 
-    table.appendChild(row);
-  });
+    const apps = await res.json();
+    if (!Array.isArray(apps)) throw new Error("Expected an array of applications");
+
+    const table = document.getElementById("table-body");
+    table.innerHTML = "";
+
+    apps.forEach(app => {
+      const row = document.createElement("tr");
+      row.setAttribute("data-status", app.status);
+
+      row.innerHTML = `
+        <td>${app.company}</td>
+        <td>${app.position}</td>
+        <td>
+          <select class="status-dropdown ${app.status.toLowerCase()}" data-app-id="${app.application_id}" onchange="updateStatus(this)">
+            ${["Applied", "Interview", "Offer", "Rejected"].map(option =>
+              `<option value="${option}" ${option === app.status ? "selected" : ""}>${option}</option>`
+            ).join("")}
+          </select>
+        </td>
+        <td>${new Date(app.date_applied).toLocaleDateString()}</td>
+        <td><a href="${app.resume_url}" target="_blank">View Resume</a></td>
+      `;
+
+      table.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Error fetching applications:", err);
+  }
 }
 
 async function updateStatus(selectEl) {
+  const idToken = localStorage.getItem("id_token");
   const appId = selectEl.dataset.appId;
   const newStatus = selectEl.value;
 
-  await fetch(`${apiBaseUrl}/update`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ application_id: appId, status: newStatus }) // ✅ Fixed
-  });
+  try {
+    const res = await fetch(`${apiBaseUrl}/update`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": idToken
+      },
+      body: JSON.stringify({ application_id: appId, status: newStatus })
+    });
 
-  // UI update
-  const row = selectEl.closest("tr");
-  row.setAttribute("data-status", newStatus);
-  selectEl.className = `status-dropdown ${newStatus.toLowerCase()}`;
+    if (!res.ok) throw new Error("Status update failed");
+
+    // UI update
+    const row = selectEl.closest("tr");
+    row.setAttribute("data-status", newStatus);
+    selectEl.className = `status-dropdown ${newStatus.toLowerCase()}`;
+  } catch (err) {
+    console.error("Failed to update status:", err);
+    alert("Could not update status. Try again.");
+  }
 }
