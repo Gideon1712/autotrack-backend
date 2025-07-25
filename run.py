@@ -4,7 +4,8 @@ from app import create_app, db
 
 app = create_app()
 migrate = Migrate(app, db)
-cli = FlaskGroup(app=app)
+
+cli = FlaskGroup(create_app=create_app)
 
 if __name__ == '__main__':
     cli()
