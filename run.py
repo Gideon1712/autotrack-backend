@@ -1,9 +1,11 @@
-from flask import Flask
 from flask_migrate import Migrate
-from app import create_app, db  # ⬅️ import db from __init__.py
+from flask.cli import with_appcontext
+from app import create_app, db
 
 app = create_app()
-migrate = Migrate(app, db)  # ⬅️ Connect migrate to app and db
+migrate = Migrate(app, db)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+# Optional: define CLI context for shell access (optional but useful)
+@app.shell_context_processor
+def make_shell_context():
+    return {'db': db}
