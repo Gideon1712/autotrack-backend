@@ -1,14 +1,15 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_migrate import Migrate  # ✅ Added
 from dotenv import load_dotenv
 import os
 
 db = SQLAlchemy()
+migrate = Migrate()  # ✅ Added
 
 def create_app():
     load_dotenv()
-
 
     app = Flask(
         __name__,
@@ -23,6 +24,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
+    migrate.init_app(app, db)  # ✅ Added
 
     # ✅ Register your main blueprint
     from .routes import main
