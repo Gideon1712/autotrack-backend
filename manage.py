@@ -2,15 +2,15 @@ from flask_migrate import Migrate
 from flask.cli import FlaskGroup
 from app import create_app, db
 
-# Create app
 app = create_app()
-
-# Bind Migrate to app and db
 migrate = Migrate(app, db)
 
-# Register Flask CLI group
-cli = FlaskGroup(app=app)  # ✅ NOT create_app=create_app
+cli = FlaskGroup(app=app)  # ⬅ critical: pass `app=app`, not `create_app=create_app`
 
-# Expose CLI when this file is run
-if __name__ == '__main__':
+# Register the CLI group directly
+if __name__ == "__main__":
     cli()
+
+# ✅ This line is what lets `flask db` work
+# ⬇ Make sure it's NOT inside the if __name__ block
+cli()  # <-- This line is now global
