@@ -5,7 +5,7 @@ from app import create_app, db
 app = create_app()
 migrate = Migrate(app, db)
 
-cli = FlaskGroup(create_app=create_app)  # ✅ THIS LINE is critical
+cli = FlaskGroup(app=app)  # DO NOT use create_app=... here
 
 if __name__ == '__main__':
     cli()
