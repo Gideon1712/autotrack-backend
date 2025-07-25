@@ -1,11 +1,10 @@
 from flask_migrate import Migrate
-from flask.cli import with_appcontext
+from flask.cli import FlaskGroup
 from app import create_app, db
 
 app = create_app()
 migrate = Migrate(app, db)
+cli = FlaskGroup(app)
 
-# Optional: define CLI context for shell access (optional but useful)
-@app.shell_context_processor
-def make_shell_context():
-    return {'db': db}
+if __name__ == '__main__':
+    cli()  # ✅ This registers `flask db` commands
